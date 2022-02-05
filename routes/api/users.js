@@ -32,7 +32,6 @@ router.patch("/", authenticate, async (req, res, next) => {
     }
 
     const { subscription, _id } = req.body;
-    console.log(req.body);
 
     const resUpdateUserSubscription = await User.findByIdAndUpdate(
       _id,
