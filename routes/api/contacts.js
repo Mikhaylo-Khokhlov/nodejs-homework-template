@@ -27,7 +27,8 @@ router.get("/", authenticate, async (req, res, next) => {
 router.get("/:contactId", authenticate, async (req, res, next) => {
   try {
     const { contactId } = req.params;
-    const resContactById = await Contact.findById(contactId);
+    const { _id } = req.user;
+    const resContactById = await Contact.find({owner: _id, _id:contactId})
 
     if (!resContactById) {
       throw new CreateError(404, "Not found");
@@ -56,7 +57,8 @@ router.post("/", authenticate, async (req, res, next) => {
 router.delete("/:contactId", authenticate, async (req, res, next) => {
   try {
     const { contactId } = req.params;
-    const resDelNewContact = await Contact.findByIdAndDelete(contactId);
+    const { _id } = req.user;
+    const resDelNewContact = await Contact.findByIdAndDelete({owner: _id, _id:contactId});
     if (!resDelNewContact) {
       throw new CreateError(404, "Not found");
     }
@@ -74,12 +76,13 @@ router.put("/:contactId", authenticate, async (req, res, next) => {
     }
 
     const { contactId } = req.params;
-    const data = { ...req.body, owner: req.user._id };
+    const { _id } = req.user;
+    const data = { ...req.body, owner: _id };
     if (Object.keys(data).length === 0) {
       throw new CreateError(400, "missing fields");
     }
 
-    const resUpdateContact = await Contact.findByIdAndUpdate(contactId, data, {
+    const resUpdateContact = await Contact.findByIdAndUpdate({owner: _id, _id:contactId}, data, {
       new: true,
     });
     if (resUpdateContact) {
@@ -98,14 +101,15 @@ router.patch("/:contactId/favorite", authenticate, async (req, res, next) => {
     if (error) {
       throw new CreateError(400, error.message);
     }
-    const data = { ...req.body, owner: req.user._id };
+    const { _id } = req.user;
+    const data = { ...req.body, owner: _id };
     const { contactId } = req.params;
     if (Object.keys(data).length === 0) {
       throw new CreateError(400, "missing field favorite");
     }
 
     const resUpdateContactFavorite = await Contact.findByIdAndUpdate(
-      contactId,
+      {owner: _id, _id:contactId},
       data,
       {
         new: true,
