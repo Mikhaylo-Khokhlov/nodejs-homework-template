@@ -10,14 +10,16 @@ router.get("/", authenticate, async (req, res, next) => {
   try {
     const { page = 1, limit = 20, favorite = true } = req.query;
     const { _id } = req.user;
-    if (!Number.isNaN(page) && !Number.isNaN(limit)) {
-      const skip = (page - 1) * limit;
+    const skip = (page - 1) * limit;
+    if (!Number.isNaN(skip) && !Number.isNaN(limit)) {
       const result = await Contact.find(
         { owner: _id, favorite },
         "-createdAt -updatedAt",
         { skip, limit: +limit }
       ).populate("owner", "email");
       res.json(result);
+    } else {
+      throw new CreateError(400, "page or limit is not a number");
     }
   } catch (e) {
     next(e);
@@ -28,7 +30,7 @@ router.get("/:contactId", authenticate, async (req, res, next) => {
   try {
     const { contactId } = req.params;
     const { _id } = req.user;
-    const resContactById = await Contact.find({owner: _id, _id:contactId})
+    const resContactById = await Contact.find({ owner: _id, _id: contactId });
 
     if (!resContactById) {
       throw new CreateError(404, "Not found");
@@ -58,7 +60,10 @@ router.delete("/:contactId", authenticate, async (req, res, next) => {
   try {
     const { contactId } = req.params;
     const { _id } = req.user;
-    const resDelNewContact = await Contact.findByIdAndDelete({owner: _id, _id:contactId});
+    const resDelNewContact = await Contact.findByIdAndDelete({
+      owner: _id,
+      _id: contactId,
+    });
     if (!resDelNewContact) {
       throw new CreateError(404, "Not found");
     }
@@ -82,9 +87,13 @@ router.put("/:contactId", authenticate, async (req, res, next) => {
       throw new CreateError(400, "missing fields");
     }
 
-    const resUpdateContact = await Contact.findByIdAndUpdate({owner: _id, _id:contactId}, data, {
-      new: true,
-    });
+    const resUpdateContact = await Contact.findByIdAndUpdate(
+      { owner: _id, _id: contactId },
+      data,
+      {
+        new: true,
+      }
+    );
     if (resUpdateContact) {
       res.status(200).json(resUpdateContact);
     } else {
@@ -109,7 +118,7 @@ router.patch("/:contactId/favorite", authenticate, async (req, res, next) => {
     }
 
     const resUpdateContactFavorite = await Contact.findByIdAndUpdate(
-      {owner: _id, _id:contactId},
+      { owner: _id, _id: contactId },
       data,
       {
         new: true,
