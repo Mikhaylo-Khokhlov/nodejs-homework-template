@@ -23,7 +23,7 @@ router.post("/signup", async (req, res, next) => {
     }
     const salt = await bcrypt.genSalt(10);
     const hashPassword = await bcrypt.hash(password, salt);
-    const avatarURL = gravatar.url(email);
+    const avatarURL = gravatar.url(email, false);
     await User.create({
       email,
       password: hashPassword,

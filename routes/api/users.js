@@ -7,6 +7,7 @@ const Jimp = require("jimp");
 const { User, schemas } = require("../../models/user");
 const authenticate = require("../../middleware/authenticate");
 const upload = require("../../middleware/upload");
+const { BASE_URL } = process.env;
 
 const router = express.Router();
 
@@ -64,19 +65,14 @@ router.patch(
       throw new CreateError(400, "Please upload file");
     }
     const { path: tempUpload, filename } = req.file;
-    await Jimp.read(tempUpload)
-      .then((item) => {
-        return item.resize(250, 250).write(tempUpload);
-      })
-      .catch((error) => {
-        next(error);
-      });
+    const item = await Jimp.read(tempUpload);
+    item.resize(250, 250).write(tempUpload);
     try {
       const [extention] = filename.split(".").reverse();
       const newFileName = `${_id}.${extention}`;
       const resultUpload = path.join(avatarsDir, newFileName);
       await fs.rename(tempUpload, resultUpload);
-      const avatarURL = path.join("avatars", newFileName);
+      const avatarURL = path.join(`${BASE_URL}/public/avatars`, newFileName);
       await User.findByIdAndUpdate(_id, { avatarURL });
       res.json({
         avatarURL,
