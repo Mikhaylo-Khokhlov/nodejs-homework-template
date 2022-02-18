@@ -3,6 +3,9 @@ const CreateError = require("http-errors");
 const path = require("path");
 const fs = require("fs/promises");
 const Jimp = require("jimp");
+// eslint-disable-next-line no-unused-vars
+const Joi = require("joi");
+const sendMail = require("../../helpers/sendMail");
 
 const { User, schemas } = require("../../models/user");
 const authenticate = require("../../middleware/authenticate");
@@ -82,5 +85,45 @@ router.patch(
     }
   }
 );
+
+router.get("/verify/:verificationToken", async (req, res, next) => {
+  try {
+    const { verificationToken } = req.params;
+    const user = await User.findOne({ verificationToken });
+    if (!user) {
+      throw CreateError(404, "User not found");
+    }
+    await User.findByIdAndUpdate(user._id, {
+      verify: true,
+      verificationToken: null,
+    });
+    res.status(200).json("Verification successful");
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/verify", async (req, res, next) => {
+  try {
+    const { error } = schemas.verifyEmail.validate(req.body);
+    if (error) {
+      throw CreateError(400, "missing required field email");
+    }
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    if (user.verify) {
+      throw CreateError(400, "Verification has already been passed");
+    }
+    const mail = {
+      to: email,
+      subject: "Подтвеждение email",
+      html: `<a target="_blank" href='http://localhost:3000/api/users/verify/${user.verificationToken}'>Нажмите чтобы подтвердить свой email</a>`,
+    };
+    await sendMail(mail);
+    res.status(200).json("Verification email sent");
+  } catch (error) {
+    next(error);
+  }
+});
 
 module.exports = router;
